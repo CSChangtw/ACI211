@@ -5,28 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ACI 211">
-<meta name="theme-color" content="#0d2137">
-<meta name="description" content="ACI 211.1 混凝土配比設計計算工具">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon.png">
 <title>ACI 211.1 混凝土配比設計</title>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.log('SW error:', err));
-  });
-}
-</script>
-<!-- Capacitor runtime (graceful fallback in browser) -->
-<script>
-// PWA 模式：若 capacitor.js 載入失敗，建立空殼防止報錯
-window.Capacitor = window.Capacitor || null;
-</script>
+<!-- Capacitor runtime -->
+<script src="capacitor.js"></script>
 <!-- jsPDF loaded on demand -->
 <style>
   :root {
@@ -129,7 +110,7 @@ window.Capacitor = window.Capacitor || null;
   .field label em { color: var(--red); font-style: normal; }
   .input-wrap { position: relative; }
   .input-wrap input, .input-wrap select {
-    width: 100%; padding: 11px 44px 11px 12px;
+    width: 100%; padding: 11px 30px 11px 12px;
     border: 1.5px solid var(--border); border-radius: 8px;
     font-size: .95rem; font-family: inherit;
     background: var(--light); color: var(--text);
@@ -401,7 +382,7 @@ window.Capacitor = window.Capacitor || null;
   <button class="tab" onclick="showTab(1)">📐 計算步驟</button>
   <button class="tab" onclick="showTab(2)">📊 配比成果</button>
   <button class="tab" onclick="showTab(3)">✅ 品質管制</button>
-  <button class="tab" onclick="showTab(4)">🌱 排碳量</button>
+  <button class="tab" onclick="showTab(4)">🌱 碳排放量</button>
   <button class="tab" onclick="showTab(5)">📄 報告輸出</button>
 </div>
 
@@ -421,7 +402,7 @@ window.Capacitor = window.Capacitor || null;
           <input type="number" id="fc" value="280" min="140" max="700" step="10" oninput="updateFcr()">
           <span class="unit">kgf/cm²</span>
         </div>
-        <p class="hint">一般結構：210～420 kgf/cm²</p>
+        <p class="hint">一般結構混凝土：210～420 kgf/cm²</p>
       </div>
 
       <!-- ══ FCR METHOD ══ -->
@@ -486,7 +467,7 @@ window.Capacitor = window.Capacitor || null;
               <input type="number" id="nFactor" value="1.30" min="1.10" max="2.00" step="0.05" oninput="updateFcr()">
               <span class="unit">—</span>
             </div>
-            <p class="hint">建議範圍 1.20～1.50；重要結構採 1.35～1.50</p>
+            <p class="hint">建議範圍： 1.15～1.30；重要結構採 1.25～1.45</p>
           </div>
         </div>
 
@@ -516,7 +497,7 @@ window.Capacitor = window.Capacitor || null;
       </div>
 
       <div class="field">
-        <label>粗粒料最大粒徑 <em>*</em></label>
+        <label>粗粒料最大粒徑 Dmax<em>*</em></label>
         <div class="input-wrap">
           <select id="maxAgg" onchange="updateCaBlend()">
             <option value="9.5">9.5 mm（3/8 in）</option>
@@ -540,7 +521,7 @@ window.Capacitor = window.Capacitor || null;
             <input type="number" id="fm" value="2.70" min="2.20" max="3.20" step="0.05" oninput="updateFmBlend()">
             <span class="unit">—</span>
           </div>
-          <p class="hint">通常 2.40～3.00，建議 2.60～2.80</p>
+          <p class="hint">CNS 1240規範值：2.30～3.10。<strong>建議值：2.60～2.80</strong></p>
         </div>
         <div id="fmPanel1" class="method-panel">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -614,7 +595,7 @@ window.Capacitor = window.Capacitor || null;
           </div>
         </div>
         <div class="field" style="grid-column:1/-1">
-          <label>粗粒料乾搗單位重 計算方式</label>
+          <label>粗粒料乾搗單位重 DU 計算方式</label>
           <div class="method-tabs" style="margin-bottom:10px">
             <button class="method-tab active" id="catab0" onclick="setCaMode(0)">直接輸入 DU</button>
             <button class="method-tab"        id="catab1" onclick="setCaMode(1)">Amax+A03 混合調配</button>
@@ -741,8 +722,9 @@ window.Capacitor = window.Capacitor || null;
             <label>飛灰等級</label>
             <div class="input-wrap">
               <select id="faClass" onchange="updateFAk()">
-                <option value="0.70">Class F（低鈣）k=0.70</option>
-                <option value="0.80">Class C（高鈣）k=0.80</option>
+                <option value="0.70">F級灰k=0.70</option>
+                <option value="0.80">C級灰k=0.80</option>
+                <option value="1.00">等量取代k=1.0</option>
               </select>
             </div>
           </div>
@@ -809,6 +791,38 @@ window.Capacitor = window.Capacitor || null;
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- 砂率調整 -->
+  <div class="sec">
+    <div class="sec-head"><span class="step">砂率</span><span>砂率S/A調整（可選）</span></div>
+    <div class="sec-body">
+      <div class="toggle-row">
+        <span class="toggle-label">⚖️ 以目標砂率重新調整粒料配比重</span>
+        <label class="toggle">
+          <input type="checkbox" id="useSandRatioAdj" onchange="toggleSandRatioAdj()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="sandRatioAdjArea" style="display:none;margin-top:10px">
+        <div class="alert info" style="margin-bottom:10px">
+          <span class="alert-icon">ℹ️</span>
+          <span>依 ACI 211.1 計算粒料配比重後，以指定砂率 S/A 重新分配細、粗粒料用量。<strong>總粒料體積保持不變</strong>，僅調整 FA 與 CA 之比例。</span>
+        </div>
+        <div class="field">
+          <label>目標砂率 S/A（細粒料/(細+粗)，重量比）</label>
+          <div class="input-wrap">
+            <input type="number" id="sandRatioTarget" value="42" min="25" max="65" step="0.5">
+            <span class="unit">%</span>
+          </div>
+          <p class="hint">
+<strong>泵送混凝土建議範圍值： 38～48%；</strong><br>
+<38%（太低）：易析離塞管、泌水水痕、漏漿<br>
+>48%（太高）：坍損快、收縮大、表面易龜裂
+</p>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1126,6 +1140,10 @@ function toggleAdmix() {
   document.getElementById('spArea').style.display   = document.getElementById('useSP').checked   ? 'block' : 'none';
   document.getElementById('aeArea').style.display   = document.getElementById('useAE').checked   ? 'block' : 'none';
 }
+function toggleSandRatioAdj() {
+  document.getElementById('sandRatioAdjArea').style.display =
+    document.getElementById('useSandRatioAdj').checked ? 'block' : 'none';
+}
 function updateFAk() {
   // k value auto from select — no action needed (read in calc)
 }
@@ -1254,6 +1272,49 @@ function calculate() {
   const CA_A03  = CA_MODE===1 ? CA*paRatio       : 0;
   const sandRatio = FA/(FA+CA);
 
+  // ── STEP 12 (可選): 砂率調整 ──
+  // 以目標砂率重新分配 FA / CA，保持總粒料體積不變
+  const useSandRatioAdj = document.getElementById('useSandRatioAdj').checked;
+  const sandRatioTarget = useSandRatioAdj
+    ? Math.max(0.25, Math.min(0.65, (parseFloat(document.getElementById('sandRatioTarget').value)||42)/100))
+    : null;
+
+  let FA_adj, CA_adj, volFA_adj, volCA_adj;
+  let SA_CS_adj, SA_FS_adj, CA_Amax_adj, CA_A03_adj;
+  let sandRatio_adj, unitWt_adj;
+
+  if (useSandRatioAdj) {
+    // 總粒料體積 = volFA + volCA（固定）
+    const volAgg_total = volFA + volCA;
+    // 依目標砂率（重量比）反算各體積
+    // sr = FA_adj / (FA_adj + CA_adj)，且 volFA_adj/sgFA + volCA_adj/sgCA = volAgg_total (近似)
+    // 精確解：設 volFA_adj = x，volCA_adj = volAgg_total - x
+    //   FA_adj = x * sgFA * 1000，CA_adj = (volAgg_total - x) * sgCA * 1000
+    //   sr = (x * sgFA) / (x * sgFA + (volAgg_total - x) * sgCA)
+    //   求解 x：
+    //   sr * (x*sgFA + (volAgg_total-x)*sgCA) = x*sgFA
+    //   sr*x*sgFA + sr*(volAgg_total-x)*sgCA = x*sgFA
+    //   x*(sgFA - sr*sgFA - sr*sgCA) = -sr*volAgg_total*sgCA  (改符號)
+    //   x*(sgFA*(1-sr) - sr*sgCA) = sr*volAgg_total*sgCA  → 錯，重推
+    //   sr*(x*sgFA + (V-x)*sgCA) = x*sgFA，V=volAgg_total
+    //   x*sgFA*sr + V*sgCA*sr - x*sgCA*sr = x*sgFA
+    //   V*sgCA*sr = x*sgFA - x*sgFA*sr + x*sgCA*sr = x*(sgFA(1-sr) + sgCA*sr)
+    //   x = V*sgCA*sr / (sgFA*(1-sr) + sgCA*sr)
+    const sr = sandRatioTarget;
+    const V  = volAgg_total;
+    volFA_adj = V * sgCoarseAgg * sr / (sgFineAgg*(1-sr) + sgCoarseAgg*sr);
+    volCA_adj = V - volFA_adj;
+    FA_adj   = volFA_adj * sgFineAgg * 1000;
+    CA_adj   = volCA_adj * sgCoarseAgg * 1000;
+    sandRatio_adj = FA_adj / (FA_adj + CA_adj);
+
+    SA_CS_adj   = FM_MODE===1 ? FA_adj*(1-psRatio) : FA_adj;
+    SA_FS_adj   = FM_MODE===1 ? FA_adj*psRatio      : 0;
+    CA_Amax_adj = CA_MODE===1 ? CA_adj*(1-paRatio)  : CA_adj;
+    CA_A03_adj  = CA_MODE===1 ? CA_adj*paRatio       : 0;
+    unitWt_adj  = C_opc + C_ggbs + C_fa + W + SP + FA_adj + CA_adj;
+  }
+
   // ── Build result object ──
   RESULT = {
     fc, fcrVal, fcrInfo, slumpIdx, maxAgg, fm,
@@ -1267,7 +1328,12 @@ function calculate() {
     unitWt, airTarget,
     useGGBS, useFlyAsh, useSP, useAE,
     sgCem, sgGGBS, sgFlyAsh, sgCoarseAgg, sgFineAgg, sgSP,
-    kGGBS, kFA
+    kGGBS, kFA,
+    // 砂率調整
+    useSandRatioAdj, sandRatioTarget,
+    FA_adj, CA_adj, volFA_adj, volCA_adj,
+    SA_CS_adj, SA_FS_adj, CA_Amax_adj, CA_A03_adj,
+    sandRatio_adj, unitWt_adj
   };
 
   renderSteps(RESULT);
@@ -1380,7 +1446,15 @@ function renderSteps(r) {
         </tbody>
       </table></div>
       <div class="formula">W/C_eq = ${r.W.toFixed(1)} ÷ ${r.C_eq.toFixed(1)} = <strong>${r.wcEq.toFixed(3)}</strong></div>
-      ${r.wcEq < r.wbFinal ? `<div class="alert ok"><span class="alert-icon">✅</span><span>等效 W/C_eq = ${r.wcEq.toFixed(3)} ＜ 設計 W/B = ${r.wbFinal.toFixed(3)}，強度裕度充足。</span></div>` : `<div class="alert warn"><span class="alert-icon">⚠️</span><span>請確認摻料效率係數設定。</span></div>`}
+      ${(()=>{
+        const eq3 = Math.round(r.wcEq * 1000) / 1000;
+        const wb3 = Math.round(r.wbFinal * 1000) / 1000;
+        if (eq3 > wb3)
+          return `<div class="alert info"><span class="alert-icon">✔️</span><span>W/C_eq = ${eq3.toFixed(3)} ＞ W/B = ${wb3.toFixed(3)}，等效取代（k &lt; 1），強度裕度充足。</span></div>`;
+        if (eq3 === wb3)
+          return `<div class="alert ok"><span class="alert-icon">✅</span><span>W/C_eq = ${eq3.toFixed(3)} = W/B = ${wb3.toFixed(3)}，等量取代（k = 1），注意早期強度發展。</span></div>`;
+        return `<div class="alert warn"><span class="alert-icon">⚠️</span><span>W/C_eq = ${eq3.toFixed(3)} ＜ W/B = ${wb3.toFixed(3)}，超限 +${(wb3 - eq3).toFixed(3)}，請確認摻料效率係數 k 設定是否偏高。</span></div>`;
+      })()}
     `);
   }
 
@@ -1418,6 +1492,54 @@ function renderSteps(r) {
     ${r.volFA > 0 && r.volFA < 0.15 ? `<div class="alert warn"><span class="alert-icon">⚠️</span><span>細粒料體積偏低（${(r.volFA*100).toFixed(1)}%），建議調高砂率。</span></div>` : ''}
   `);
 
+  // STEP 12: 砂率調整（選用）
+  if (r.useSandRatioAdj) {
+    const baseStep = (r.useGGBS||r.useFlyAsh) ? 9 : 8;
+    const deltaFA = r.FA_adj - r.FA;
+    const deltaCA = r.CA_adj - r.CA;
+    html += secStep(baseStep, '砂率調整（目標砂率調整粒料配比重）', `
+      <div class="alert info" style="margin-bottom:8px">
+        <span class="alert-icon">⚖️</span>
+        <span>總粒料體積（volFA + volCA = ${(r.volFA + r.volCA).toFixed(4)} m³）保持不變，依目標砂率重新分配。</span>
+      </div>
+      <div class="formula">
+        目標砂率 S/A = ${(r.sandRatioTarget*100).toFixed(1)}%<br>
+        volFA' = V<sub>agg</sub> × ρ<sub>CA</sub> × sr ÷ (ρ<sub>FA</sub>×(1−sr) + ρ<sub>CA</sub>×sr)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;= ${(r.volFA+r.volCA).toFixed(4)} × ${r.sgCoarseAgg} × ${r.sandRatioTarget.toFixed(3)} ÷ (${r.sgFineAgg}×${(1-r.sandRatioTarget).toFixed(3)} + ${r.sgCoarseAgg}×${r.sandRatioTarget.toFixed(3)})<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;= <strong>${r.volFA_adj.toFixed(4)} m³</strong>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>材料</th><th>ACI 原計算</th><th>砂率調整後</th><th>增減</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>細粒料 FA (kg/m³)</td>
+            <td>${r.FA.toFixed(0)}</td>
+            <td><strong>${r.FA_adj.toFixed(0)}</strong></td>
+            <td style="color:${deltaFA>=0?'#16a34a':'#dc2626'}">${deltaFA>=0?'+':''}${deltaFA.toFixed(0)}</td>
+          </tr>
+          <tr>
+            <td>粗粒料 CA (kg/m³)</td>
+            <td>${r.CA.toFixed(0)}</td>
+            <td><strong>${r.CA_adj.toFixed(0)}</strong></td>
+            <td style="color:${deltaCA>=0?'#16a34a':'#dc2626'}">${deltaCA>=0?'+':''}${deltaCA.toFixed(0)}</td>
+          </tr>
+          <tr>
+            <td>單位重 (kg/m³)</td>
+            <td>${r.unitWt.toFixed(0)}</td>
+            <td><strong>${r.unitWt_adj.toFixed(0)}</strong></td>
+            <td style="color:${r.unitWt_adj-r.unitWt>=0?'#16a34a':'#dc2626'}">${r.unitWt_adj-r.unitWt>=0?'+':''}${(r.unitWt_adj-r.unitWt).toFixed(0)}</td>
+          </tr>
+          <tr class="highlight">
+            <td>實際砂率 S/A</td>
+            <td>${(r.sandRatio*100).toFixed(1)}%</td>
+            <td><strong>${(r.sandRatio_adj*100).toFixed(1)}%</strong></td>
+            <td>${((r.sandRatio_adj-r.sandRatio)*100).toFixed(1)}%</td>
+          </tr>
+        </tbody>
+      </table></div>
+    `);
+  }
+
   document.getElementById('stepsContent').innerHTML = html;
 }
 
@@ -1440,10 +1562,10 @@ function renderResults(r) {
     { label:'水泥 OPC',   val:r.C_opc,  color:'#1a5fa8', show:true },
     { label:'爐石粉 GGBS',val:r.C_ggbs, color:'#0e8a7c', show:r.useGGBS },
     { label:'飛灰 FA',    val:r.C_fa,   color:'#6d28d9', show:r.useFlyAsh },
-    { label:'水',         val:r.W,      color:'#38aecc', show:true },
+    { label:'水 W',         val:r.W,      color:'#38aecc', show:true },
     { label:'強塑劑 SP',  val:r.SP,     color:'#d97706', show:r.useSP },
-    { label:'細粒料',     val:r.FA,     color:'#92400e', show:true },
-    { label:'粗粒料',     val:r.CA,     color:'#64748b', show:true },
+    { label:'細粒料 SA',     val:r.FA,     color:'#92400e', show:true },
+    { label:'粗粒料 CA',     val:r.CA,     color:'#64748b', show:true },
   ];
 
   let barsHtml = '';
@@ -1493,7 +1615,7 @@ function renderResults(r) {
         <tr><td>🔵 水泥 OPC</td><td><strong>${r.C_opc.toFixed(1)}</strong></td><td>${(r.opcRate*100).toFixed(0)}% 膠結材</td></tr>
         ${r.useGGBS?`<tr><td>🟢 爐石粉 GGBS</td><td><strong>${r.C_ggbs.toFixed(1)}</strong></td><td>${(r.ggbsRate*100).toFixed(0)}% 膠結材</td></tr>`:''}
         ${r.useFlyAsh?`<tr><td>🟣 飛灰 FA</td><td><strong>${r.C_fa.toFixed(1)}</strong></td><td>${(r.faRate*100).toFixed(0)}% 膠結材</td></tr>`:''}
-        <tr class="total"><td>膠結材合計 B</td><td><strong>${r.B.toFixed(1)}</strong></td><td>100%</td></tr>
+        <tr class="total"><td>膠結材 B合計 =</td><td><strong>${r.B.toFixed(1)}</strong></td><td>100%</td></tr>
         <tr><td>💧 水</td><td><strong>${r.W.toFixed(1)}</strong></td><td>W/B=${r.wbFinal.toFixed(3)}</td></tr>
         ${r.useSP?`<tr><td>⚗️ 強塑劑 SP</td><td><strong>${r.SP.toFixed(2)}</strong></td><td>${(r.spDosePct*100).toFixed(1)}% 膠結材</td></tr>`:''}
         <tr><td>🟡 細粒料 SA</td><td><strong>${r.FA.toFixed(0)}</strong></td><td>FM=${r.fm.toFixed(3)}</td></tr>
@@ -1506,16 +1628,52 @@ function renderResults(r) {
     </div>
   </div>
 
+  ${r.useSandRatioAdj ? `
+  <!-- 砂率調整後配比表 -->
+  <div class="sec fadeIn" style="border:2px solid #0e8a7c">
+    <div class="sec-head" style="background:linear-gradient(90deg,#0e8a7c,#14b8a6)">
+      <span class="step" style="background:#fff;color:#0e8a7c">砂率調整</span>
+      <span>砂率調整後配比用量（目標 S/A = ${(r.sandRatioTarget*100).toFixed(1)}%）</span>
+    </div>
+    <div class="sec-body" style="padding:0">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>材料</th><th>ACI 原算</th><th>調整後 kg/m³</th><th>增減</th></tr></thead>
+      <tbody>
+        <tr><td>🔵 水泥 OPC</td><td>${r.C_opc.toFixed(1)}</td><td><strong>${r.C_opc.toFixed(1)}</strong></td><td>—</td></tr>
+        ${r.useGGBS?`<tr><td>🟢 爐石粉 GGBS</td><td>${r.C_ggbs.toFixed(1)}</td><td><strong>${r.C_ggbs.toFixed(1)}</strong></td><td>—</td></tr>`:''}
+        ${r.useFlyAsh?`<tr><td>🟣 飛灰 FA</td><td>${r.C_fa.toFixed(1)}</td><td><strong>${r.C_fa.toFixed(1)}</strong></td><td>—</td></tr>`:''}
+        <tr><td>💧 水</td><td>${r.W.toFixed(1)}</td><td><strong>${r.W.toFixed(1)}</strong></td><td>—</td></tr>
+        ${r.useSP?`<tr><td>⚗️ 強塑劑 SP</td><td>${r.SP.toFixed(2)}</td><td><strong>${r.SP.toFixed(2)}</strong></td><td>—</td></tr>`:''}
+        <tr style="background:#fefce8"><td>🟡 細粒料 SA</td><td>${r.FA.toFixed(0)}</td><td><strong style="color:#0e8a7c">${r.FA_adj.toFixed(0)}</strong></td><td style="color:${r.FA_adj-r.FA>=0?'#16a34a':'#dc2626'};font-weight:700">${r.FA_adj-r.FA>=0?'+':''}${(r.FA_adj-r.FA).toFixed(0)}</td></tr>
+        ${r.fmMode===1?`<tr style='background:#f0fdf4'><td style='padding-left:20px'>↳ 粗砂 CS (${((1-r.psRatio)*100).toFixed(0)}%)</td><td>${r.SA_CS.toFixed(0)}</td><td>${r.SA_CS_adj.toFixed(0)}</td><td style="color:${r.SA_CS_adj-r.SA_CS>=0?'#16a34a':'#dc2626'}">${r.SA_CS_adj-r.SA_CS>=0?'+':''}${(r.SA_CS_adj-r.SA_CS).toFixed(0)}</td></tr><tr style='background:#f0fdf4'><td style='padding-left:20px'>↳ 細砂 FS (${(r.psRatio*100).toFixed(0)}%)</td><td>${r.SA_FS.toFixed(0)}</td><td>${r.SA_FS_adj.toFixed(0)}</td><td style="color:${r.SA_FS_adj-r.SA_FS>=0?'#16a34a':'#dc2626'}">${r.SA_FS_adj-r.SA_FS>=0?'+':''}${(r.SA_FS_adj-r.SA_FS).toFixed(0)}</td></tr>`:''}
+        <tr style="background:#fefce8"><td>⚫ 粗粒料 CA</td><td>${r.CA.toFixed(0)}</td><td><strong style="color:#0e8a7c">${r.CA_adj.toFixed(0)}</strong></td><td style="color:${r.CA_adj-r.CA>=0?'#16a34a':'#dc2626'};font-weight:700">${r.CA_adj-r.CA>=0?'+':''}${(r.CA_adj-r.CA).toFixed(0)}</td></tr>
+        ${r.caMode===1?`<tr style='background:#f8fafc'><td style='padding-left:20px'>↳ 粗石${r.amaxName} (${((1-r.paRatio)*100).toFixed(0)}%)</td><td>${r.CA_Amax.toFixed(0)}</td><td>${r.CA_Amax_adj.toFixed(0)}</td><td style="color:${r.CA_Amax_adj-r.CA_Amax>=0?'#16a34a':'#dc2626'}">${r.CA_Amax_adj-r.CA_Amax>=0?'+':''}${(r.CA_Amax_adj-r.CA_Amax).toFixed(0)}</td></tr><tr style='background:#f8fafc'><td style='padding-left:20px'>↳ 細石A03 (${(r.paRatio*100).toFixed(0)}%)</td><td>${r.CA_A03.toFixed(0)}</td><td>${r.CA_A03_adj.toFixed(0)}</td><td style="color:${r.CA_A03_adj-r.CA_A03>=0?'#16a34a':'#dc2626'}">${r.CA_A03_adj-r.CA_A03>=0?'+':''}${(r.CA_A03_adj-r.CA_A03).toFixed(0)}</td></tr>`:''}
+        <tr class="total highlight"><td>合計（單位重）</td><td>${r.unitWt.toFixed(0)}</td><td><strong>${r.unitWt_adj.toFixed(0)}</strong></td><td style="color:${r.unitWt_adj-r.unitWt>=0?'#16a34a':'#dc2626'}">${r.unitWt_adj-r.unitWt>=0?'+':''}${(r.unitWt_adj-r.unitWt).toFixed(0)}</td></tr>
+        <tr style="background:#dcfce7"><td colspan="2"><strong>✅ 調整後砂率 S/A</strong></td><td colspan="2" style="text-align:center;font-size:1.05rem;font-weight:900;color:#0e8a7c">${(r.sandRatio_adj*100).toFixed(2)}%</td></tr>
+      </tbody>
+    </table></div>
+    </div>
+  </div>` : ''}
+
   <!-- Key params -->
   <div class="sec fadeIn">
     <div class="sec-head"><span class="step">關鍵</span><span>關鍵設計參數</span></div>
     <div class="sec-body" style="padding:0">
-      <div class="info-row"><span class="key">配重比 C:FA:CA</span><span class="val">${ratioStr}</span></div>
+      <div class="info-row"><span class="key">配重比 C:SA:CA</span><span class="val">${r.useSandRatioAdj ? `1 : ${(r.FA_adj/r.C_opc).toFixed(2)} : ${(r.CA_adj/r.C_opc).toFixed(2)} <span style="color:#0e8a7c;font-size:.72rem">（砂率調整後）</span>` : ratioStr}</span></div>
       ${r.useGGBS||r.useFlyAsh?`<div class="info-row"><span class="key">等效水灰比 W/C_eq</span><span class="val">${r.wcEq.toFixed(3)}</span></div>`:''}
       <div class="info-row"><span class="key">空氣含量</span><span class="val">${r.airTarget.toFixed(1)} %</span></div>
-      <div class="info-row"><span class="key">細粒料絕對體積</span><span class="val">${(r.volFA*1000).toFixed(1)} L/m³</span></div>
+      <div class="info-row"><span class="key">細粒料絕對體積</span><span class="val">${r.useSandRatioAdj ? `${(r.volFA_adj*1000).toFixed(1)} L/m³ <span style="color:#94a3b8;font-size:.72rem">（原 ${(r.volFA*1000).toFixed(1)}）</span>` : (r.volFA*1000).toFixed(1)+' L/m³'}</span></div>
       <div class="info-row"><span class="key">粗粒料 VAC</span><span class="val">${r.bb0.toFixed(3)}</span></div>
-      <div class="info-row"><span class="key">砂率 S/A</span><span class="val">${(r.sandRatio*100).toFixed(1)} %</span></div>
+      <div class="info-row">
+        <span class="key">砂率 S/A</span>
+        <span class="val">
+          ${r.useSandRatioAdj
+            ? `<span style="color:#94a3b8;text-decoration:line-through;font-size:.82rem">${(r.sandRatio*100).toFixed(1)}%</span>
+               → <strong style="color:#0e8a7c">${(r.sandRatio_adj*100).toFixed(2)}%</strong>
+               <span style="color:#0e8a7c;font-size:.72rem">（目標 ${(r.sandRatioTarget*100).toFixed(1)}%）</span>`
+            : (r.sandRatio*100).toFixed(1)+' %'}
+        </span>
+      </div>
       ${r.fmMode===1?`<div class="info-row"><span class="key">細砂混合比 PS</span><span class="val">${(r.psRatio*100).toFixed(0)}%（FS/(CS+FS)）</span></div>`:''}
       ${r.caMode===1?`<div class="info-row"><span class="key">細石混合比 PA</span><span class="val">${(r.paRatio*100).toFixed(0)}%（細石A03/(粗石${r.amaxName}+細石A03)）</span></div>`:''}
     </div>
@@ -1560,7 +1718,7 @@ function renderQC(r) {
     { icon:'⚗️', title:'強塑劑劑量',     std:`${(r.SP).toFixed(2)} kg/m³ ±5%`,         freq:'每車',     note:'依廠商規格確認添加量' },
     { icon:'🌡️', title:'混凝土溫度',    std:'出場溫度 ≤ 35°C，最低 10°C',            freq:'每車',     note:'夏季加冷水或冰塊，冬季加溫' },
     { icon:'⏱️', title:'坍度保留性',    std:'澆置前坍度仍符合規範',                   freq:'每車',     note:'強塑劑配合添加時機確認' },
-    { icon:'📦', title:'GGBS/FA 來料',   std:'符合 CNS 12549 / CNS 3662',              freq:'每批次',   note:'活性指數、比重、細度確認' },
+    { icon:'📦', title:'GGBS/FA 來料',   std:'符合 CNS 12549 / CNS 3036',              freq:'每批次',   note:'活性指數、比重、細度確認' },
     { icon:'🏗️', title:'養護',          std:'至少 7 天潮濕養護',                       freq:'持續',     note:'冬季或加速養護需延長' },
   ];
 
@@ -1622,10 +1780,10 @@ const CO2_DEFAULTS = {
   opc:       { label: '水泥 OPC',    factor: 0.870, color: '#1a5fa8' },
   ggbs:      { label: '爐石粉 GGBS', factor: 0.060, color: '#0e8a7c' },
   flyAsh:    { label: '飛灰 FA',     factor: 0.007, color: '#6d28d9' },
-  water:     { label: '拌合水',      factor: 0.0003,color: '#38aecc' },
+  water:     { label: '拌合水 W',      factor: 0.0003,color: '#38aecc' },
   sp:        { label: '強塑劑 SP',   factor: 0.750, color: '#d97706' },
-  fineAgg:   { label: '細粒料',      factor: 0.007, color: '#92400e' },
-  coarseAgg: { label: '粗粒料',      factor: 0.007, color: '#64748b' },
+  fineAgg:   { label: '細粒料 SA',      factor: 0.007, color: '#92400e' },
+  coarseAgg: { label: '粗粒料 CA',      factor: 0.007, color: '#64748b' },
 };
 
 // 預拌車運輸碳排放預設值
@@ -1641,14 +1799,17 @@ let TRANSPORT_PARAMS = JSON.parse(JSON.stringify(TRANSPORT_DEFAULTS));
 
 // ── 計算材料碳排放 ──
 function calcCarbonEmission(r) {
+  // 若啟用砂率調整，碳排量以調整後粒料用量計算
+  const FA_use = (r.useSandRatioAdj && r.FA_adj != null) ? r.FA_adj : r.FA;
+  const CA_use = (r.useSandRatioAdj && r.CA_adj != null) ? r.CA_adj : r.CA;
   const inputs = {
     opc:       r.C_opc,
     ggbs:      r.useGGBS    ? r.C_ggbs : 0,
     flyAsh:    r.useFlyAsh  ? r.C_fa   : 0,
     water:     r.W,
     sp:        r.useSP      ? r.SP     : 0,
-    fineAgg:   r.FA,
-    coarseAgg: r.CA,
+    fineAgg:   FA_use,
+    coarseAgg: CA_use,
   };
   let matTotal = 0;
   const breakdown = {};
@@ -2243,7 +2404,7 @@ function renderReport(r) {
 
   <!-- Section 3: Mix Proportions -->
   <div class="sec" style="margin-bottom:12px">
-    <div class="sec-head"><span class="step">參</span><span>配比用量（SSD 面乾內飽和狀態）</span></div>
+    <div class="sec-head"><span class="step">參</span><span>配比用量（SSD 面乾內飽和狀態）${r.useSandRatioAdj?'　<span style="font-size:.72rem;color:#99f6e4">⚖️ 砂率調整後數值</span>':''}</span></div>
     <div class="sec-body" style="padding:0">
       <div class="tbl-wrap"><table>
         <thead><tr><th>材料</th><th>kg/m³</th><th>絕對體積 m³</th><th>備註</th></tr></thead>
@@ -2254,12 +2415,12 @@ function renderReport(r) {
           <tr class="total"><td>膠結材 B</td><td><strong>${r.B.toFixed(1)}</strong></td><td>—</td><td>W/B=${r.wbFinal.toFixed(3)}</td></tr>
           <tr><td>水 W</td><td><strong>${r.W.toFixed(1)}</strong></td><td>${r.volWater.toFixed(4)}</td><td>W/B=${r.wbFinal.toFixed(3)}</td></tr>
           ${r.useSP?`<tr><td>強塑劑 SP</td><td><strong>${r.SP.toFixed(2)}</strong></td><td>${r.volSP.toFixed(4)}</td><td>減水${(r.spWRpct*100).toFixed(0)}%</td></tr>`:''}
-          <tr><td>細粒料 SA</td><td><strong>${r.FA.toFixed(0)}</strong></td><td>${r.volFA.toFixed(4)}</td><td>FM=${r.fm.toFixed(3)}</td></tr>
-          ${r.fmMode===1?`<tr style='background:#f0fdf4'><td style='padding-left:14px'>↳ 粗砂 CS (${((1-r.psRatio)*100).toFixed(0)}%)</td><td>${r.SA_CS.toFixed(0)}</td><td>—</td><td>FM=${r.fmCS}</td></tr><tr style='background:#f0fdf4'><td style='padding-left:14px'>↳ 細砂 FS (${(r.psRatio*100).toFixed(0)}%)</td><td>${r.SA_FS.toFixed(0)}</td><td>—</td><td>FM=${r.fmFS}</td></tr>`:''}
-          <tr><td>粗粒料 CA</td><td><strong>${r.CA.toFixed(0)}</strong></td><td>${r.volCA.toFixed(4)}</td><td>VAC=${r.bb0.toFixed(3)}</td></tr>
-          ${r.caMode===1?`<tr style='background:#f8fafc'><td style='padding-left:14px'>↳ 粗石${r.amaxName} (${((1-r.paRatio)*100).toFixed(0)}%)</td><td>${r.CA_Amax.toFixed(0)}</td><td>—</td><td>DU=${r.duAmax}</td></tr><tr style='background:#f8fafc'><td style='padding-left:14px'>↳ 細石A03 (${(r.paRatio*100).toFixed(0)}%)</td><td>${r.CA_A03.toFixed(0)}</td><td>—</td><td>DU=${r.duA03}</td></tr>`:''}
+          <tr${r.useSandRatioAdj?" style='background:#f0fdf4'":""}><td>細粒料 SA</td><td><strong>${r.useSandRatioAdj?r.FA_adj.toFixed(0):r.FA.toFixed(0)}</strong></td><td>${r.useSandRatioAdj?r.volFA_adj.toFixed(4):r.volFA.toFixed(4)}</td><td>FM=${r.fm.toFixed(3)}${r.useSandRatioAdj?`　<span style="color:#0e8a7c;font-size:.72rem">S/A調整後</span>`:''}</td></tr>
+          ${r.fmMode===1?`<tr style='background:#f0fdf4'><td style='padding-left:14px'>↳ 粗砂 CS (${((1-r.psRatio)*100).toFixed(0)}%)</td><td>${r.useSandRatioAdj?r.SA_CS_adj.toFixed(0):r.SA_CS.toFixed(0)}</td><td>—</td><td>FM=${r.fmCS}</td></tr><tr style='background:#f0fdf4'><td style='padding-left:14px'>↳ 細砂 FS (${(r.psRatio*100).toFixed(0)}%)</td><td>${r.useSandRatioAdj?r.SA_FS_adj.toFixed(0):r.SA_FS.toFixed(0)}</td><td>—</td><td>FM=${r.fmFS}</td></tr>`:''}
+          <tr${r.useSandRatioAdj?" style='background:#f0fdf4'":""}><td>粗粒料 CA</td><td><strong>${r.useSandRatioAdj?r.CA_adj.toFixed(0):r.CA.toFixed(0)}</strong></td><td>${r.useSandRatioAdj?r.volCA_adj.toFixed(4):r.volCA.toFixed(4)}</td><td>VAC=${r.bb0.toFixed(3)}${r.useSandRatioAdj?`　<span style="color:#0e8a7c;font-size:.72rem">S/A調整後</span>`:''}</td></tr>
+          ${r.caMode===1?`<tr style='background:#f8fafc'><td style='padding-left:14px'>↳ 粗石${r.amaxName} (${((1-r.paRatio)*100).toFixed(0)}%)</td><td>${r.useSandRatioAdj?r.CA_Amax_adj.toFixed(0):r.CA_Amax.toFixed(0)}</td><td>—</td><td>DU=${r.duAmax}</td></tr><tr style='background:#f8fafc'><td style='padding-left:14px'>↳ 細石A03 (${(r.paRatio*100).toFixed(0)}%)</td><td>${r.useSandRatioAdj?r.CA_A03_adj.toFixed(0):r.CA_A03.toFixed(0)}</td><td>—</td><td>DU=${r.duA03}</td></tr>`:''}
           <tr><td>空氣</td><td>—</td><td>${r.volAir.toFixed(4)}</td><td>${r.airTarget.toFixed(1)}%</td></tr>
-          <tr class="total highlight"><td>合計</td><td><strong>${r.unitWt.toFixed(0)}</strong></td><td>1.0000</td><td>kg/m³</td></tr>
+          <tr class="total highlight"><td>合計</td><td><strong>${r.useSandRatioAdj?r.unitWt_adj.toFixed(0):r.unitWt.toFixed(0)}</strong></td><td>1.0000</td><td>kg/m³</td></tr>
         </tbody>
       </table></div>
     </div>
@@ -2269,12 +2430,12 @@ function renderReport(r) {
   <div class="sec" style="margin-bottom:12px">
     <div class="sec-head"><span class="step">肆</span><span>關鍵設計參數</span></div>
     <div class="sec-body" style="padding:0">
-      <div class="info-row"><span class="key">配重比 C:SA:CA</span><span class="val">1 : ${(r.FA/r.C_opc).toFixed(2)} : ${(r.CA/r.C_opc).toFixed(2)}</span></div>
+      <div class="info-row"><span class="key">配重比 C:SA:CA</span><span class="val">1 : ${r.useSandRatioAdj?(r.FA_adj/r.C_opc).toFixed(2):(r.FA/r.C_opc).toFixed(2)} : ${r.useSandRatioAdj?(r.CA_adj/r.C_opc).toFixed(2):(r.CA/r.C_opc).toFixed(2)}</span></div>
       <div class="info-row"><span class="key">實際 W/B</span><span class="val">${r.wbFinal.toFixed(3)}</span></div>
       ${r.useGGBS||r.useFlyAsh?`<div class="info-row"><span class="key">等效 W/C_eq</span><span class="val">${r.wcEq.toFixed(3)}</span></div>`:''}
       <div class="info-row"><span class="key">細粒料 FM</span><span class="val">${r.fm.toFixed(3)}</span></div>
       <div class="info-row"><span class="key">粗粒料 VAC</span><span class="val">${r.bb0.toFixed(3)}</span></div>
-      <div class="info-row"><span class="key">砂率 S/A</span><span class="val">${(r.sandRatio*100).toFixed(1)} %</span></div>
+      <div class="info-row"><span class="key">砂率 S/A</span><span class="val">${r.useSandRatioAdj?`<span style="color:#0e8a7c;font-weight:900">${(r.sandRatio_adj*100).toFixed(2)}%</span> <span style="color:#94a3b8;font-size:.72rem">（ACI原算 ${(r.sandRatio*100).toFixed(1)}%）</span>`:(r.sandRatio*100).toFixed(1)+' %'}</span></div>
       ${r.fmMode===1?`<div class="info-row"><span class="key">細砂混合比 PS</span><span class="val">${(r.psRatio*100).toFixed(0)}%（FS/(CS+FS)）</span></div>`:''}
       ${r.caMode===1?`<div class="info-row"><span class="key">細石混合比 PA</span><span class="val">${(r.paRatio*100).toFixed(0)}%（細石A03/(粗石${r.amaxName}+細石A03)）</span></div>`:''}
       <div class="info-row"><span class="key">空氣含量</span><span class="val">${r.airTarget.toFixed(1)} %</span></div>
@@ -2317,7 +2478,7 @@ function renderReport(r) {
       ${(r.useGGBS||r.useFlyAsh)?`
       <p style="font-size:.82rem;font-weight:700;color:var(--navy);margin:10px 0 4px">⑤ 等效水灰比驗證</p>
       <div class="formula">C_eq = ${r.C_opc.toFixed(1)} + ${r.kGGBS}×${r.C_ggbs.toFixed(1)} + ${r.kFA}×${r.C_fa.toFixed(1)} = ${r.C_eq.toFixed(1)} kg/m³</div>
-      <div class="formula">W/C_eq = ${r.W.toFixed(1)} / ${r.C_eq.toFixed(1)} = <strong>${r.wcEq.toFixed(3)}</strong> ${r.wcEq<r.wbFinal?'✓ 裕度充足':''}</div>
+      <div class="formula">W/C_eq = ${r.W.toFixed(1)} / ${r.C_eq.toFixed(1)} = <strong>${r.wcEq.toFixed(3)}</strong> ${(()=>{const e=Math.round(r.wcEq*1000)/1000,w=Math.round(r.wbFinal*1000)/1000;return e>w?'✔ 等效取代，強度裕度充足':e===w?'✅ 等量取代，注意早期強度':'⚠️ k設定偏高，超限+'+(w-e).toFixed(3);})()}</div>
       `:''}
 
       <!-- Step 6: Coarse agg -->
@@ -2333,6 +2494,21 @@ function renderReport(r) {
       <div class="formula">V_SA = 1.0000 − ${(1-r.volFA).toFixed(4)} = ${r.volFA.toFixed(4)} m³</div>
       <div class="formula">SA = ${r.volFA.toFixed(4)} × ${r.sgFineAgg} × 1000 = <strong>${r.FA.toFixed(0)} kg/m³</strong></div>
       <div class="formula" style="background:#dcfce7;border-color:#86efac">砂率 S/A = ${r.FA.toFixed(0)} / (${r.FA.toFixed(0)}+${r.CA.toFixed(0)}) = <strong>${(r.sandRatio*100).toFixed(1)}%</strong></div>
+
+      ${r.useSandRatioAdj && r.FA_adj != null ? `
+      <!-- Step 9: Sand ratio adjustment -->
+      <p style="font-size:.82rem;font-weight:700;color:#0e8a7c;margin:10px 0 4px">${(r.useGGBS||r.useFlyAsh)?'⑨':'⑧'} 砂率調整</p>
+      <div class="formula" style="background:#f0fdf4;border-color:#86efac;text-align:left;line-height:1.9">
+        總粒料體積 V<sub>agg</sub> = volFA + volCA = ${r.volFA.toFixed(4)} + ${r.volCA.toFixed(4)} = <strong>${(r.volFA+r.volCA).toFixed(4)} m³</strong>（保持不變）<br>
+        目標砂率 S/A = <strong>${(r.sandRatioTarget*100).toFixed(1)}%</strong><br>
+        volFA' = V<sub>agg</sub> × ρ<sub>CA</sub> × sr ÷ (ρ<sub>FA</sub>×(1−sr) + ρ<sub>CA</sub>×sr)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= ${(r.volFA+r.volCA).toFixed(4)} × ${r.sgCoarseAgg} × ${r.sandRatioTarget.toFixed(3)} ÷ (${r.sgFineAgg}×${(1-r.sandRatioTarget).toFixed(3)} + ${r.sgCoarseAgg}×${r.sandRatioTarget.toFixed(3)})<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <strong>${r.volFA_adj.toFixed(4)} m³</strong><br>
+        SA* = ${r.volFA_adj.toFixed(4)} × ${r.sgFineAgg} × 1000 = <strong>${r.FA_adj.toFixed(0)} kg/m³</strong><br>
+        CA* = (${(r.volFA+r.volCA).toFixed(4)} − ${r.volFA_adj.toFixed(4)}) × ${r.sgCoarseAgg} × 1000 = <strong>${r.CA_adj.toFixed(0)} kg/m³</strong>
+      </div>
+      <div class="formula" style="background:#dcfce7;border-color:#6ee7b7">實際砂率 S/A* = ${r.FA_adj.toFixed(0)} / (${r.FA_adj.toFixed(0)}+${r.CA_adj.toFixed(0)}) = <strong style="color:#059669">${(r.sandRatio_adj*100).toFixed(2)}%</strong></div>
+      ` : ''}
 
     </div>
   </div>
@@ -2365,7 +2541,7 @@ function renderReport(r) {
   <div class="sec" style="margin-bottom:12px" id="reportCarbonSec">
     <div class="sec-head"><span class="step" style="background:#059669"></span><span>碳排放量評估（A1–A4）</span></div>
     <div class="sec-body" style="padding:0" id="reportCarbonBody">
-      <div style="padding:10px 12px;font-size:.8rem;color:var(--text2)">請先前往「🌱 排碳量」頁面完成計算後，此處將自動填入。</div>
+      <div style="padding:10px 12px;font-size:.8rem;color:var(--text2)">請先前往「🌱 碳排放量」頁面完成計算後，此處將自動填入。</div>
     </div>
   </div>
   </div><!-- /reportPrint: 碳排放量計算書 end -->
@@ -2628,7 +2804,19 @@ async function exportPDF() {
     // ════════════════════════════════════════════════════════
     //  SECTION 3: Mix Proportions
     // ════════════════════════════════════════════════════════
-    secHeader('參', tc('配比用量（SSD 面乾内飽和狀態）'));
+    const _saAdj = r.useSandRatioAdj && r.FA_adj != null;
+    const _FA_p = _saAdj ? r.FA_adj : r.FA;
+    const _CA_p = _saAdj ? r.CA_adj : r.CA;
+    const _volFA_p = _saAdj ? r.volFA_adj : r.volFA;
+    const _volCA_p = _saAdj ? r.volCA_adj : r.volCA;
+    const _unitWt_p = _saAdj ? r.unitWt_adj : r.unitWt;
+    const _SA_CS_p = _saAdj ? r.SA_CS_adj : r.SA_CS;
+    const _SA_FS_p = _saAdj ? r.SA_FS_adj : r.SA_FS;
+    const _CA_Amax_p = _saAdj ? r.CA_Amax_adj : r.CA_Amax;
+    const _CA_A03_p  = _saAdj ? r.CA_A03_adj  : r.CA_A03;
+    const _srNote = _saAdj ? `S/A=${(r.sandRatio_adj*100).toFixed(1)}%調後` : '';
+
+    secHeader('參', tc(_saAdj ? '配比用量（SSD 面乾内飽和狀態）— 砂率調整後' : '配比用量（SSD 面乾内飽和狀態）'));
     const mixBody = [];
     mixBody.push(['水泥 OPC', r.C_opc.toFixed(1), r.volCem.toFixed(4), `${(r.opcRate*100).toFixed(0)}% 膠結材`]);
     if (r.useGGBS)    mixBody.push(['爐石粉 GGBS', r.C_ggbs.toFixed(1), r.volGGBS.toFixed(4), `${(r.ggbsRate*100).toFixed(0)}%, k=${r.kGGBS}`]);
@@ -2636,18 +2824,18 @@ async function exportPDF() {
     mixBody.push(['膠結材合計 B', r.B.toFixed(1), '—', '']);
     mixBody.push(['水 W', r.W.toFixed(1), r.volWater.toFixed(4), `W/B=${r.wbFinal.toFixed(3)}`]);
     if (r.useSP) mixBody.push(['強塑劑 SP', r.SP.toFixed(2), r.volSP.toFixed(4), `減水率 ${(r.spWRpct*100).toFixed(0)}%`]);
-    mixBody.push(['細粒料 SA', r.FA.toFixed(0), r.volFA.toFixed(4), `FM=${r.fm.toFixed(3)}`]);
+    mixBody.push([_saAdj?'細粒料 SA *':'細粒料 SA', _FA_p.toFixed(0), _volFA_p.toFixed(4), `FM=${r.fm.toFixed(3)}${_srNote?'  '+_srNote:''}`]);
     if (r.fmMode===1) {
-      mixBody.push([`  CS (${((1-r.psRatio)*100).toFixed(0)}%)`, r.SA_CS.toFixed(0), '—', `FM=${r.fmCS}`]);
-      mixBody.push([`  FS (${(r.psRatio*100).toFixed(0)}%)`,     r.SA_FS.toFixed(0), '—', `FM=${r.fmFS}`]);
+      mixBody.push([`  CS (${((1-r.psRatio)*100).toFixed(0)}%)`, _SA_CS_p.toFixed(0), '—', `FM=${r.fmCS}`]);
+      mixBody.push([`  FS (${(r.psRatio*100).toFixed(0)}%)`,     _SA_FS_p.toFixed(0), '—', `FM=${r.fmFS}`]);
     }
-    mixBody.push(['粗粒料 CA', r.CA.toFixed(0), r.volCA.toFixed(4), `VAC=${r.bb0.toFixed(3)}`]);
+    mixBody.push([_saAdj?'粗粒料 CA *':'粗粒料 CA', _CA_p.toFixed(0), _volCA_p.toFixed(4), `VAC=${r.bb0.toFixed(3)}${_srNote?'  '+_srNote:''}`]);
     if (r.caMode===1) {
-      mixBody.push([`  ${r.amaxName} (${((1-r.paRatio)*100).toFixed(0)}%)`, r.CA_Amax.toFixed(0), '—', `DU=${r.duAmax}`]);
-      mixBody.push([`  A03 (${(r.paRatio*100).toFixed(0)}%)`,               r.CA_A03.toFixed(0),  '—', `DU=${r.duA03}`]);
+      mixBody.push([`  ${r.amaxName} (${((1-r.paRatio)*100).toFixed(0)}%)`, _CA_Amax_p.toFixed(0), '—', `DU=${r.duAmax}`]);
+      mixBody.push([`  A03 (${(r.paRatio*100).toFixed(0)}%)`,               _CA_A03_p.toFixed(0),  '—', `DU=${r.duA03}`]);
     }
     mixBody.push(['空氣', '—', r.volAir.toFixed(4), `${r.airTarget.toFixed(1)}%`]);
-    mixBody.push(['合 計', r.unitWt.toFixed(0), '1.0000', 'kg/m³']);
+    mixBody.push(['合 計', _unitWt_p.toFixed(0), '1.0000', 'kg/m³']);
 
     doc.autoTable({
       startY: y, margin:{left:ML, right:MR},
@@ -2664,6 +2852,8 @@ async function exportPDF() {
           data.cell.styles.fontStyle = 'bold';
         if (String(r0[0]).startsWith('  '))
           data.cell.styles.fillColor = [248,250,252];
+        if (_saAdj && (String(r0[0]).includes('細粒料') || String(r0[0]).includes('粗粒料')))
+          data.cell.styles.fillColor = [240,253,244];  // 砂率調整後列淺綠底
         if (Array.isArray(data.cell.text))
           data.cell.text = data.cell.text.map(t => tc(String(t)));
       },
@@ -2675,10 +2865,12 @@ async function exportPDF() {
     //  SECTION 4: Key Parameters
     // ════════════════════════════════════════════════════════
     secHeader('肆', '關鍵設計參數');
-    infoRow('配重比 C:SA:CA', `1 : ${(r.FA/r.C_opc).toFixed(2)} : ${(r.CA/r.C_opc).toFixed(2)}`, LGRAY);
+    infoRow('配重比 C:SA:CA', `1 : ${(_FA_p/r.C_opc).toFixed(2)} : ${(_CA_p/r.C_opc).toFixed(2)}`, LGRAY);
     infoRow('實際水膠比 W/B', r.wbFinal.toFixed(3));
     if (r.useGGBS||r.useFlyAsh) infoRow('等效水灰比 W/Ceq', r.wcEq.toFixed(3), LGRAY);
-    infoRow('砂率 S/A', `${(r.sandRatio*100).toFixed(1)} %`);
+    infoRow('砂率 S/A', _saAdj
+      ? `${(r.sandRatio_adj*100).toFixed(2)} %（目標 ${(r.sandRatioTarget*100).toFixed(1)}%，ACI原算 ${(r.sandRatio*100).toFixed(1)}%）`
+      : `${(r.sandRatio*100).toFixed(1)} %`);
     if (r.fmMode===1) infoRow('細砂混合比 PS', `${(r.psRatio*100).toFixed(0)}%  FS/(CS+FS)`, LGRAY);
     if (r.caMode===1) infoRow('細石混合比 PA', `${(r.paRatio*100).toFixed(0)}%  A03/(${r.amaxName}+A03)`);
     infoRow('空氣含量', `${r.airTarget.toFixed(1)} %`, LGRAY);
@@ -2726,8 +2918,10 @@ async function exportPDF() {
       if (r.useFlyAsh) ceq += ` + ${r.kFA}x${r.C_fa.toFixed(1)}`;
       ceq += ` = ${r.C_eq.toFixed(1)} kg/m³`;
       formulaBox(ceq);
-      formulaBox(`W/C_eq = ${r.W.toFixed(1)} / ${r.C_eq.toFixed(1)} = ${r.wcEq.toFixed(3)}  ${r.wcEq<r.wbFinal?'✓ 裕度充足':''}`,
-                 r.wcEq<r.wbFinal?[220,252,231]:[254,243,199]);
+      const _eq3 = Math.round(r.wcEq * 1000) / 1000;
+      const _wb3 = Math.round(r.wbFinal * 1000) / 1000;
+      formulaBox(`W/C_eq = ${r.W.toFixed(1)} / ${r.C_eq.toFixed(1)} = ${r.wcEq.toFixed(3)}  ${_eq3 > _wb3 ? '✔ 等效取代，強度裕度充足' : _eq3 === _wb3 ? '✅ 等量取代，注意早期強度' : `⚠ 超限+${(_wb3-_eq3).toFixed(3)}，確認k值`}`,
+                 _eq3 > _wb3 ? [219,234,254] : _eq3 === _wb3 ? [220,252,231] : [254,243,199]);
     }
 
     const sn = r.useGGBS||r.useFlyAsh;
@@ -2741,6 +2935,17 @@ async function exportPDF() {
     formulaBox(`V(SA)=1.0000-${volSum}=${r.volFA.toFixed(4)} m³`);
     formulaBox(`SA=${r.volFA.toFixed(4)} x ${r.sgFineAgg} x 1000 = ${r.FA.toFixed(0)} kg/m³`);
     formulaBox(`S/A=${r.FA.toFixed(0)}/(${r.FA.toFixed(0)}+${r.CA.toFixed(0)})=${(r.sandRatio*100).toFixed(1)}%`, [220,252,231]);
+    if (_saAdj) {
+      const _stepN = sn ? '8' : '7';
+      stepLabel(`步驟${_stepN}.  砂率調整（目標 S/A = ${(r.sandRatioTarget*100).toFixed(1)}%）`);
+      const _vagg = (r.volFA + r.volCA).toFixed(4);
+      formulaBox(`總粒料體積 Vagg = volFA + volCA = ${r.volFA.toFixed(4)} + ${r.volCA.toFixed(4)} = ${_vagg} m³（保持不變）`);
+      formulaBox(`volFA' = Vagg x rhoCA x sr / (rhoFA x(1-sr) + rhoCA x sr)`);
+      formulaBox(`      = ${_vagg} x ${r.sgCoarseAgg} x ${r.sandRatioTarget.toFixed(3)} / (${r.sgFineAgg}x${(1-r.sandRatioTarget).toFixed(3)} + ${r.sgCoarseAgg}x${r.sandRatioTarget.toFixed(3)}) = ${r.volFA_adj.toFixed(4)} m³`);
+      formulaBox(`SA* = ${r.volFA_adj.toFixed(4)} x ${r.sgFineAgg} x 1000 = ${_FA_p.toFixed(0)} kg/m³`);
+      formulaBox(`CA* = (${_vagg} - ${r.volFA_adj.toFixed(4)}) x ${r.sgCoarseAgg} x 1000 = ${_CA_p.toFixed(0)} kg/m³`);
+      formulaBox(`實際 S/A* = ${_FA_p.toFixed(0)}/(${_FA_p.toFixed(0)}+${_CA_p.toFixed(0)}) = ${(r.sandRatio_adj*100).toFixed(2)}%`, [209,250,229]);
+    }
     y += 4;
 
     // ════════════════════════════════════════════════════════
@@ -2785,7 +2990,9 @@ async function exportPDF() {
       const _ce = calcCarbonEmission(RESULT);
       const _trans = calcTransportCO2();
       const _grand = Math.round(_ce.matTotal + _trans);
-      const _opcCO2 = Math.round(RESULT.B * CO2_FACTORS.opc.factor + RESULT.W * CO2_FACTORS.water.factor + RESULT.FA * CO2_FACTORS.fineAgg.factor + RESULT.CA * CO2_FACTORS.coarseAgg.factor + (RESULT.useSP ? RESULT.SP * CO2_FACTORS.sp.factor  : 0) + _trans);
+      const _FA_base = (RESULT.useSandRatioAdj && RESULT.FA_adj != null) ? RESULT.FA_adj : RESULT.FA;
+      const _CA_base = (RESULT.useSandRatioAdj && RESULT.CA_adj != null) ? RESULT.CA_adj : RESULT.CA;
+      const _opcCO2 = Math.round(RESULT.B * CO2_FACTORS.opc.factor + RESULT.W * CO2_FACTORS.water.factor + _FA_base * CO2_FACTORS.fineAgg.factor + _CA_base * CO2_FACTORS.coarseAgg.factor + (RESULT.useSP ? RESULT.SP * CO2_FACTORS.sp.factor  : 0) + _trans);
       const _redPct = ((_grand - _opcCO2) / _opcCO2 * 100);
       const _isRed  = _grand < _opcCO2;
       const _redAbs = Math.abs(Math.round(_grand - _opcCO2));
@@ -3004,7 +3211,7 @@ async function exportPDF() {
     } else {
       checkPage(8);
       doc.setFontSize(8); doc.setFont(FN, 'normal'); doc.setTextColor(...MUTED);
-      doc.text(tc('（請先於「排碳量」頁面執行計算）'), ML+2, y);
+      doc.text(tc('（請先於「碳排放量」頁面執行計算）'), ML+2, y);
       y += 8;
       doc.setTextColor(...TEXT);
     }
@@ -3494,6 +3701,15 @@ function buildTextReport(r) {
   const fi = r.fcrInfo;
   const fcrMethod = ['無數據法(ACI 318)','標準差法(ACI 318)','係數法'][fi.method];
   const slumpLabel = ['25~50','75~100','150~180'][r.slumpIdx];
+  const _saAdj = r.useSandRatioAdj && r.FA_adj != null;
+  const _FA_t = _saAdj ? r.FA_adj : r.FA;
+  const _CA_t = _saAdj ? r.CA_adj : r.CA;
+  const _SA_CS_t = _saAdj ? r.SA_CS_adj : r.SA_CS;
+  const _SA_FS_t = _saAdj ? r.SA_FS_adj : r.SA_FS;
+  const _CA_Amax_t = _saAdj ? r.CA_Amax_adj : r.CA_Amax;
+  const _CA_A03_t  = _saAdj ? r.CA_A03_adj  : r.CA_A03;
+  const _unitWt_t  = _saAdj ? r.unitWt_adj  : r.unitWt;
+  const _sr_t = _saAdj ? r.sandRatio_adj : r.sandRatio;
   const lines = [
     `混凝土配比設計計算書`,
     `配比編號: F${String(r.fc).padStart(3,'0')}S${String([5,10,18][r.slumpIdx]).padStart(2,'0')}-${new Date().toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}).replace('/','').replace('/','')}`,
@@ -3510,24 +3726,25 @@ function buildTextReport(r) {
     `採用 W/B = ${r.wbFinal.toFixed(3)}  (${r.wcControl==='strength'?'強度控制':'耐久性控制'})`,
     r.useGGBS||r.useFlyAsh ? `等效 W/Ceq = ${r.wcEq.toFixed(3)}` : '',
     sep,
-    `【配比用量 kg/m³ (SSD)】`,
+    `【配比用量 kg/m³ (SSD)】${_saAdj?'  ← 砂率調整後':''}`,
     `水泥 OPC:   ${r.C_opc.toFixed(1)}`,
     r.useGGBS   ? `爐石粉 GGBS: ${r.C_ggbs.toFixed(1)}  (${(r.ggbsRate*100).toFixed(0)}%, k=${r.kGGBS})` : '',
     r.useFlyAsh ? `飛灰 FA:    ${r.C_fa.toFixed(1)}  (${(r.faRate*100).toFixed(0)}%, k=${r.kFA})` : '',
     `膠結材 B:   ${r.B.toFixed(1)}`,
     `水 W:       ${r.W.toFixed(1)}  (W/B=${r.wbFinal.toFixed(3)})`,
     r.useSP     ? `強塑劑 SP:  ${r.SP.toFixed(2)}  (減水${(r.spWRpct*100).toFixed(0)}%)` : '',
-    `細粒料 SA:  ${r.FA.toFixed(0)}  (FM=${r.fm.toFixed(3)})`,
-    r.fmMode===1 ? `  粗砂 CS: ${r.SA_CS.toFixed(0)} (${((1-r.psRatio)*100).toFixed(0)}%)  細砂 FS: ${r.SA_FS.toFixed(0)} (${(r.psRatio*100).toFixed(0)}%)` : '',
-    `粗粒料 CA:  ${r.CA.toFixed(0)}  (VAC=${r.bb0.toFixed(3)})`,
-    r.caMode===1 ? `  ${r.amaxName}: ${r.CA_Amax.toFixed(0)} (${((1-r.paRatio)*100).toFixed(0)}%)  A03: ${r.CA_A03.toFixed(0)} (${(r.paRatio*100).toFixed(0)}%)` : '',
-    `單位重:     ${r.unitWt.toFixed(0)} kg/m³`,
+    `細粒料 SA:  ${_FA_t.toFixed(0)}  (FM=${r.fm.toFixed(3)})${_saAdj?'  *調整後':''}`,
+    r.fmMode===1 ? `  粗砂 CS: ${_SA_CS_t.toFixed(0)} (${((1-r.psRatio)*100).toFixed(0)}%)  細砂 FS: ${_SA_FS_t.toFixed(0)} (${(r.psRatio*100).toFixed(0)}%)` : '',
+    `粗粒料 CA:  ${_CA_t.toFixed(0)}  (VAC=${r.bb0.toFixed(3)})${_saAdj?'  *調整後':''}`,
+    r.caMode===1 ? `  ${r.amaxName}: ${_CA_Amax_t.toFixed(0)} (${((1-r.paRatio)*100).toFixed(0)}%)  A03: ${_CA_A03_t.toFixed(0)} (${(r.paRatio*100).toFixed(0)}%)` : '',
+    `單位重:     ${_unitWt_t.toFixed(0)} kg/m³`,
     sep,
     `【關鍵參數】`,
-    `砂率 S/A: ${(r.sandRatio*100).toFixed(1)}%`,
+    _saAdj ? `砂率 S/A: ${(_sr_t*100).toFixed(2)}%（目標 ${(r.sandRatioTarget*100).toFixed(1)}%，ACI原算 ${(r.sandRatio*100).toFixed(1)}%）`
+           : `砂率 S/A: ${(_sr_t*100).toFixed(1)}%`,
     r.fmMode===1 ? `細砂混合比 PS: ${(r.psRatio*100).toFixed(0)}%` : '',
     r.caMode===1 ? `細石混合比 PA: ${(r.paRatio*100).toFixed(0)}%` : '',
-    `配重比 C:SA:CA = 1:${(r.FA/r.C_opc).toFixed(2)}:${(r.CA/r.C_opc).toFixed(2)}`,
+    `配重比 C:SA:CA = 1:${(_FA_t/r.C_opc).toFixed(2)}:${(_CA_t/r.C_opc).toFixed(2)}`,
   ].filter(l => l !== null && l !== undefined && l !== '');
   return lines.join('\n');
 }
